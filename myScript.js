@@ -10,7 +10,19 @@ let randomNum = Math.floor(Math.random() * 100);
 const button = document.querySelector(".btn");
 const guess_es = [];
 
-//Function to submit number on click
+const MAX_GUESSES = 5;
+let guessCount = 0;
+
+// ── helper: lock UI when limit is hit ──────────────────────────────────────
+const lockOnLimitReached = () => {
+  number.disabled = true;
+  number.value = "No more guesses! Reveal the answer or restart.";
+  button.disabled = true;
+  revealAnswer.disabled = false; // make sure reveal is available
+  restartButton.style.display = "inline-block"; // show restart
+  answer.textContent = `Game over! You used all ${MAX_GUESSES} guesses.`;
+};
+
 const buttonClick = (e) => {
   e.preventDefault();
 
@@ -24,23 +36,17 @@ const buttonClick = (e) => {
   if (guess === randomNum) {
     answer.innerHTML = `<div class="win-message">🎉 Congratulations, You win! ${guess} is correct number! 🎉</div>`;
 
-    // Create confetti
     for (let i = 0; i < 100; i++) {
       setTimeout(() => {
         const confetti = document.createElement("div");
         confetti.className = "confetti";
         confetti.style.left = `${Math.random() * 100}vw`;
-        confetti.style.backgroundColor = `hsl(${
-          Math.random() * 360
-        }, 100%, 50%)`;
-        confetti.style.animation = `fall ${
-          Math.random() * 2 + 2
-        }s linear forwards`;
+        confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        confetti.style.animation = `fall ${Math.random() * 2 + 2}s linear forwards`;
         document.body.appendChild(confetti);
       }, i * 30);
     }
 
-    // Create flying emojis
     const emojis = ["🎯", "🏆", "✨", "👑", "💎"];
     emojis.forEach((emoji, i) => {
       setTimeout(() => {
@@ -53,7 +59,6 @@ const buttonClick = (e) => {
       }, i * 300);
     });
 
-    // Cleanup after animation
     setTimeout(() => {
       document
         .querySelectorAll(".confetti, .emoji")
@@ -65,23 +70,39 @@ const buttonClick = (e) => {
     number.value = "You won! Restart game to play again";
     number.disabled = true;
     button.disabled = true;
+    restartButton.style.display = "inline-block"; // show restart on win too
     randomNum = Math.floor(Math.random() * 100);
     guess_es.length = 0;
-  } else if (guess > randomNum) {
-    answer.textContent = "The guess is high";
+    guessCount = 0;
+  } else {
+    // Wrong guess
+    guessCount++;
+    const remaining = MAX_GUESSES - guessCount;
+
+    if (guess > randomNum) {
+      answer.textContent =
+        remaining > 0
+          ? `You guessed high — ${remaining} guess${remaining === 1 ? "" : "es"} left`
+          : "You guessed high.";
+    } else {
+      answer.textContent =
+        remaining > 0
+          ? `You guessed low — ${remaining} guess${remaining === 1 ? "" : "es"} left`
+          : "You guessed low.";
+    }
+
     number.value = "";
-  } else if (guess < randomNum) {
-    answer.textContent = "The guess is low";
-    number.value = "";
+    guess_es.push(guess);
+    Guesses_span.textContent = guess_es.join(", ");
+
+    if (guessCount >= MAX_GUESSES) {
+      lockOnLimitReached();
+    }
   }
-  guess_es.push(guess);
-  Guesses_span.textContent = guess_es.join(", ");
 };
 
-//Event listener on submit answer click
 button.addEventListener("click", buttonClick);
 
-//Function to submit number on keyboard enter press
 const onEnter = (event) => {
   if (event.key.toLowerCase() === "enter") {
     event.preventDefault();
@@ -89,7 +110,6 @@ const onEnter = (event) => {
   }
 };
 
-//Event listener on submit answer throug keyboard enter press
 number.addEventListener("keypress", onEnter);
 
 revealAnswer.addEventListener("click", () => {
@@ -99,8 +119,9 @@ revealAnswer.addEventListener("click", () => {
   answer.textContent = "";
   number.disabled = true;
   button.disabled = true;
+  restartButton.style.display = "inline-block";
   revealSpan.textContent =
-    "Number revealed: You lost the lost game. Restart to play again";
+    "Number revealed: You lost the game. Restart to play again";
 });
 
 restartButton.addEventListener("click", () => {
@@ -109,13 +130,12 @@ restartButton.addEventListener("click", () => {
   revealAnswer.disabled = false;
   revealSpan.textContent = "";
   guessed_numbers.style.display = "block";
-
   Guesses_span.textContent = "";
   guess_es.length = 0;
-
+  guessCount = 0; // ← reset counter
   number.disabled = false;
   button.disabled = false;
   answer.textContent = "";
-
+  restartButton.style.display = "none"; // ← hide restart again
   randomNum = Math.round(Math.random() * 100);
 });
